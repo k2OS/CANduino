@@ -4,6 +4,10 @@
 
 #include <Wire.h> 
 #include <LiquidCrystal_I2C.h>
+#include "RTClib.h"
+ 
+RTC_DS1307 RTC;
+
 LiquidCrystal_I2C lcd(0x20,6,5,4,3,2,1,0);
 
 int debug = 1;
@@ -11,10 +15,10 @@ int debug = 1;
 float v = 1; // init
 float scalea = 0.999;
 float scaleb = 0.001;
-int state = 0; // tændt eller slukket (0 == free, 1 == busy)
+int state = 0; // on or off (0 == free, 1 == busy)
 
 int IN = 5;
-int LED = 6; // skift til 7
+int LED = 6; // change to 7
 int REL = 12;
 
 
@@ -26,9 +30,10 @@ long int prevdism = 0;
 // skal skifte til state = 0,1,2..
 int displaystate = 0; // 0 = visits, 1 = average, 2 = last visit
 
-long int unsigned busytemp = 0; // temp tidtager
-long int unsigned busyshort = 0; // korte besøg
-long int unsigned busylong = 0; // lange besøg
+long int unsigned busytemp = 0; // temp timer
+//long int unsigned busyshort = 0; // short visits - phased out
+//long int unsigned busylong = 0; // long visits - phased out
+long int unsigned busytotal = 0; // total use time
 long int unsigned visits = 0;
 long int busylast = 0;
 
@@ -70,14 +75,16 @@ void loop(){
     if (busytemp > 15) {
       visits++;
       busylast = busytemp;
-      if (busytemp >= 90) {
+// we no longer handle long vs short visits on the 'duino as we save all data to SD (later)
+      busytotal = busytotal + busytemp;
+/*      if (busytemp >= 90) {
         // tissetår tager fra ca 50 sekunder og op 
         busylong = busylong + busytemp; 
         busytemp = 0; 
       } else {
         busyshort = busyshort + busytemp;
         busytemp = 0;
-      }
+      } */
     }
     if (debug) { Serial.println(v); }
     digitalWrite(13,LOW); 
@@ -141,8 +148,11 @@ void loop(){
        lcd.print("           ");
        lcd.setCursor(0,1);
        lcd.print("Avg ");
-       avgmins = ((busylong+busyshort)/visits+1)/60; //convert seconds to minutes
-       avgsecs = ((busylong+busyshort)/visits+1)-(avgmins*60); //subtract the coverted seconds to minutes in order to display 59 secs max 
+//       avgmins = ((busylong+busyshort)/visits+1)/60; //convert seconds to minutes
+//       avgsecs = ((busylong+busyshort)/visits+1)-(avgmins*60); //subtract the coverted seconds to minutes in order to display 59 secs max 
+       avgmins = (busytotal/visits+1)/60; //convert seconds to minutes
+       avgsecs = (busytotal/visits+1)-(avgmins*60); //subtract the coverted seconds to minutes in order to display 59 secs max 
+
        if (avgmins < 10) { lcd.print("0"); }
        lcd.print(avgmins);
        lcd.print(":");
