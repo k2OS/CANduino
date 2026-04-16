@@ -1,14 +1,17 @@
-//#include <LiquidCrystal.h>
-//  LiquidCrystal lcd(A0, A1, A2, A3, A4, A5);
-//  LiquidCrystal lcd(A0, A1, A2, A3, A4, A5);
+//Changed the display driver, as the old implementation did not specify the library.
+//Here the hd44780 by Bill Perry.
 
 #include <Wire.h> 
-#include <LiquidCrystal_I2C.h>
 #include "RTClib.h"
- 
-RTC_DS1307 RTC;
+#include <hd44780.h>  
+#include <hd44780ioClass/hd44780_I2Cexp.h> // i2c expander i/o class header
 
-LiquidCrystal_I2C lcd(0x20,6,5,4,3,2,1,0);
+const int LCD_COLS = 16;
+const int LCD_ROWS = 2;
+
+hd44780_I2Cexp lcd(0x20,I2Cexp_PCF8574, 4,5,6,3,2,1,0);
+
+RTC_DS1307 RTC;
 
 int debug = 1;
 
@@ -47,7 +50,7 @@ void setup(){
 
   //start serial connection
   if (debug) { Serial.begin(9600); }// works best with Serial enabled
-  if (debug) { Serial.println("CANduino v3 - k2OS"); }
+  if (debug) { Serial.println("CANduino v4 - k2OS - RGG"); }
   
   //configure pin2 as an input and enable the internal pull-up resistor
   pinMode(IN, INPUT_PULLUP);
@@ -140,6 +143,7 @@ void loop(){
         lcd.print("           ");
         lcd.setCursor(0,1);
         lcd.print("Visits:");
+        if (visits > 90) { visits = 0;} //Avoid the 99 visits overflow
         if (visits < 10) { lcd.print(" "); }
         lcd.print(visits); 
      break;
@@ -177,4 +181,3 @@ void loop(){
   } // eo 'is ... prevm'
  
 } // eo loop
-
